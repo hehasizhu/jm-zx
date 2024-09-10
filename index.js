@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const { init: initDB, Counter } = require("./db");
+const http = require("http");
+const socketIo = require("socket.io");
 
 const logger = morgan("tiny");
 
@@ -47,6 +49,21 @@ app.get("/api/wx_openid", async (req, res) => {
   if (req.headers["x-wx-source"]) {
     res.send(req.headers["x-wx-openid"]);
   }
+});
+
+// WebSocket服务
+io.on("connection", (socket) => {
+  console.log("新用户连接");
+
+  // 监听数据库变化并发送给客户端
+  socket.on("get-data", async () => {
+    const data = await Counter.findAll(); // 假设你有一个方法来获取数据库中的数据
+    socket.emit("data-update", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("用户断开连接");
+  });
 });
 
 const port = process.env.PORT || 80;
